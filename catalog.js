@@ -106,4 +106,4 @@ window.OGE_TOPICS = [
     "part": 2
   }
 ];
-window.OGE_MATERIALS = [];
+window.OGE_MATERIALS = [{topic:"1-5",type:"lesson",title:"Шины · Математика в движении",description:"5 задач ФИПИ, теория, рабочая тетрадь и лаборатория",path:"tasks/1-5/tires/index.html"}];
