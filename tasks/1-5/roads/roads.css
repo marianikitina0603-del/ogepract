@@ -17,6 +17,9 @@
 .route-readouts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .55rem; }
 .route-readouts output { flex: 1 1 160px; padding: .4rem .6rem; margin: 0; border-left: 4px solid #246e8e; background: #fff; }
 .route-readouts output + output { border-color: #9b5b14; }
+.basket-quantities { display: grid; gap: .35rem; margin-top: .5rem; }
+.basket-quantities label { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.basket-quantities input { width: 5rem; }
 .shopping-table tr.picked :is(th, td) { background: #dfeede; }
 .shopping-table tr.picked th { box-shadow: inset 4px 0 #557856; }
 .lesson-paper .road-map { max-width: 275px; }

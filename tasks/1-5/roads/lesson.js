@@ -1,5 +1,5 @@
 import { startLesson } from '../../../shared/lesson-core.js?v=3';
-import { legend, roadMap, roadNetwork, namesModel, segmentModel, rideModel, shoppingModel } from './map.js?v=1';
+import { legend, roadMap, roadNetwork, namesModel, segmentModel, rideModel, shoppingModel } from './map.js?v=2';
 
 const maslovka = {
   names: ['Масловка', 'Вёсенка', 'Полянка', 'Захарово'],

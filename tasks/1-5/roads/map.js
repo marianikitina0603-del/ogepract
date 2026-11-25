@@ -20,7 +20,7 @@ export function roadNetwork({ horizontal, vertical, upper, speed, numbers }) {
   return { nodes, edges, numbers, speed };
 }
 
-export function roadMap(network, { marked = [], labels = [], angle = false, dots = [] } = {}) {
+export function roadMap(network, { marked = [], labels = [], angle = false, dots = [], routes = [] } = {}) {
   const { nodes, edges, numbers } = network;
   const width = nodes[3][0] + 54;
   const height = nodes[0][1] + 35;
@@ -35,15 +35,19 @@ export function roadMap(network, { marked = [], labels = [], angle = false, dots
     <path d="M${pondX-13} ${pondY+2} q12 -5 20 -2" fill="none" stroke="#51808a"/>
     ${edges.map((edge, i) => {
       const a = nodes[edge.a], b = nodes[edge.b];
-      return line(a, b, `class="road-${edge.highway ? 'highway' : 'path'}"`)
-        + (marked.includes(i) ? line(a, b, 'stroke="#c17826" stroke-width="6" stroke-linecap="round"') : '');
+      const primary = routes[0]?.edges.includes(i);
+      const secondary = routes[1]?.edges.includes(i);
+      const base = line(a, b, `class="road-${edge.highway ? 'highway' : 'path'}"`);
+      const first = primary || marked.includes(i) ? line(a, b, `stroke="${primary ? colors[0] : '#c17826'}" stroke-width="6" stroke-linecap="round"`) : '';
+      const second = secondary ? line(a, b, `stroke="${colors[1]}" stroke-width="${primary ? 3 : 6}" stroke-linecap="round" ${primary ? 'stroke-dasharray="5 8"' : ''}`) : '';
+      return base + first + second;
     }).join('')}
     ${angle ? `<path d="M${left} ${top+15} h15 v-15" stroke="#325944" fill="none" stroke-width="2"/>` : ''}
     ${nodes.map(([x, y], j) => `<g><circle cx="${x}" cy="${y}" r="15" fill="#fffefa" stroke="#40554a" stroke-width="1.6"/>
       <text x="${x}" y="${y+7}" text-anchor="middle" class="village-number">${numbers[j]}</text>
       ${labels[j] ? `<text x="${j === 3 ? x - 23 : x + 23}" y="${y+5}" text-anchor="${j === 3 ? 'end' : 'start'}" class="village-name">${labels[j]}</text>` : ''}
     </g>`).join('')}
-    ${dots.map(({ x, y, color }) => `<circle cx="${x}" cy="${y}" r="8" fill="${color}" class="road-mark"/>`).join('')}
+    ${dots.map(({ x, y, color }, i) => `<circle cx="${x}" cy="${y}" r="${i ? 7 : 11}" fill="${color}" class="road-mark"/>`).join('')}
     <g transform="translate(${width-68} ${height-39})"><rect x="-10" y="-9" width="58" height="33" rx="4" fill="#fffefa"/>
       <path d="M0 -4 V4 M0 0 h14 M14 -4 V4" stroke="#263b32"/><text x="7" y="18" text-anchor="middle">1 км</text></g>
     </svg>`;
@@ -160,8 +164,7 @@ export function rideModel(network) {
       const picked = chosen();
       const dots = picked.map((path, i) => position(network, path, elapsed, colors[i]));
       root.querySelector('[data-map]').innerHTML = roadMap(network, {
-        marked: [...new Set(picked.flatMap(path => path.edges))],
-        dots,
+        routes: picked, dots,
       });
       if (reveal) root.querySelector('[data-readouts]').innerHTML = dots.map(({ distance, minutes }, i) =>
         `<output><strong>${picked[i].name}</strong><br>${format(distance)} км · ${format(minutes)} мин</output>`).join('');
@@ -190,11 +193,31 @@ export function rideModel(network) {
 export function shoppingModel(prices, products, shops) {
   return (root, { reveal, onReveal, condition }) => {
     const rows = [...condition.querySelectorAll('.shopping-table tbody tr')];
-    root.innerHTML = `<h3>Собери корзину</h3><p>Отметь продукты, которые есть в условии. Выбранные строки выделятся в таблице цен.</p>
+    root.innerHTML = `<h3>Собери корзину</h3><p>Отметь продукты из условия. Выбранные строки выделятся в таблице цен.</p>
       <div data-rows class="lesson-row"></div>
-      ${reveal ? `<div class="lesson-row route-controls"><label>Магазин <select data-shop>
-      ${shops.map(shop => `<option>${shop}</option>`).join('')}</select></label><button data-cost>Показать стоимость выбранных товаров</button></div><output></output>` : ''}`;
+      ${reveal ? `<div data-quantities class="basket-quantities"></div><div class="lesson-row route-controls"><label>Магазин <select data-shop>
+      ${shops.map(shop => `<option>${shop}</option>`).join('')}</select></label><button data-cost>Посчитать корзину</button></div><output aria-live="polite"></output>` : ''}`;
     const selected = new Set();
+    const quantities = root.querySelector('[data-quantities]');
+    const output = root.querySelector('output');
+    const counts = new Map();
+    function updateBasket() {
+      if (!reveal) return;
+      quantities.replaceChildren();
+      for (const i of selected) {
+        const field = document.createElement('label');
+        field.textContent = products[i] + ' ';
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 1;
+        input.max = 100;
+        input.value = counts.get(i) || 1;
+        input.oninput = () => { counts.set(i, input.value); output.textContent = ''; };
+        field.append(input);
+        quantities.append(field);
+      }
+      output.textContent = '';
+    }
     rows.forEach((row, i) => {
       const button = document.createElement('button');
       button.textContent = products[i];
@@ -203,19 +226,20 @@ export function shoppingModel(prices, products, shops) {
         if (selected.has(i)) selected.delete(i); else selected.add(i);
         row.classList.toggle('picked', selected.has(i));
         button.setAttribute('aria-pressed', selected.has(i));
-        if (reveal) root.querySelector('output').textContent = '';
+        updateBasket();
       };
       root.querySelector('[data-rows]').append(button);
     });
     if (!reveal) return;
     const shop = root.querySelector('[data-shop]');
-    const output = root.querySelector('output');
     shop.onchange = () => { output.textContent = ''; };
     root.querySelector('[data-cost]').onclick = () => {
       if (!selected.size) { output.textContent = 'Сначала выбери товары.'; return; }
+      const invalid = [...quantities.querySelectorAll('input')].find(input => !input.value || !input.validity.valid);
+      if (invalid) { output.textContent = 'Укажи целое количество от 1 до 100.'; invalid.focus(); return; }
+      const sum = [...selected].reduce((total, i) => total + prices[i][shop.selectedIndex] * Number(counts.get(i) || 1), 0);
       onReveal();
-      const j = shop.selectedIndex;
-      output.textContent = [...selected].map(i => `${products[i]} · ${prices[i][j]} руб. за единицу`).join(' · ');
+      output.textContent = `${shop.value} · ${format(sum)} руб.`;
     };
   };
 }
