@@ -1,4 +1,4 @@
-import { typeset } from './math-keyboard.js?v=8';
+import { typeset } from './math-keyboard.js?v=9';
 
 export function renderTheory(container, config, { context, interactive = true } = {}) {
   if (context) {

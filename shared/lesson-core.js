@@ -1,14 +1,14 @@
 import { lessonStorage } from './storage.js?v=8';
 import { createInk, inkToolbar } from './annotation.js?v=8';
 import { setupPanels } from './panels.js?v=8';
-import { setupNotebook } from './notebook.js?v=8';
+import { setupNotebook } from './notebook.js?v=9';
 import { setupBoardTransfer } from './board-bridge.js?v=4';
-import { setupKeyboard, typeset } from './math-keyboard.js?v=8';
+import { setupKeyboard, typeset } from './math-keyboard.js?v=9';
 import { capture, download, preparePrint } from './export.js?v=8';
 
 import { lessonLayout } from './lesson-config.js?v=8';
-import { assistance, checkFinal, gradeTest, mountCheckpoints, taskFeedback } from './assessment.js?v=8';
-import { renderTheory } from './theory.js?v=8';
+import { assistance, checkFinal, gradeTest, mountCheckpoints, restartTest, taskFeedback } from './assessment.js?v=9';
+import { renderTheory } from './theory.js?v=9';
 
 const panel = (id, title, tools = true) => `<section class="lesson-panel" id="${id}" aria-label="${title}" hidden>
   <div class="panelbar"><strong>${title}</strong>
@@ -295,7 +295,14 @@ export function startLesson(config) {
       <ul class="result-list">${list}</ul>
       ${correctCount === tasks.length
         ? '<p>Закрепи способы решения на другом комплекте в режиме «Тренировка».</p>'
-        : '<p>Вернись к заданиям на повторение. Разбор доступен в режиме «Обучение».</p>'}`;
+        : '<p>Вернись к заданиям на повторение. Разбор доступен в режиме «Обучение».</p>'}
+      ${mode === 'test' ? '<button type="button" id="restart-test">Пройти контрольную заново</button>' : ''}`;
+    if (mode === 'test') $('restart-test').onclick = () => {
+      if (!confirm('Сбросить ответы и результат этой контрольной? Рукописные записи сохранятся.')) return;
+      finishWriting();
+      restartTest(state(), tasks);
+      go(2);
+    };
   }
 
   function render() {

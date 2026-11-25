@@ -1,6 +1,6 @@
 import { createInk, drawStrokes, inkToolbar } from './annotation.js?v=8';
 import { capture, download, pngArchive } from './export.js?v=8';
-import { typeset } from './math-keyboard.js?v=8';
+import { typeset } from './math-keyboard.js?v=9';
 import { printNotebook } from './notebook-print.js?v=8';
 
 const defaultPaper = { kind: 'grid', cell: 20, zoom: 100 };

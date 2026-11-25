@@ -1,4 +1,4 @@
-import { numberAnswer, typeset } from './math-keyboard.js?v=8';
+import { numberAnswer, typeset } from './math-keyboard.js?v=9';
 
 export function checkAnswer(task, raw) {
   return task.check ? Boolean(task.check(raw)) : Math.abs(numberAnswer(raw) - task.answer) < 1e-8;
@@ -21,10 +21,19 @@ export function checkFinal(state, key, task, raw) {
 export function gradeTest(state, entries) {
   if (state.completed.test) return;
   for (const { key, task } of entries) {
+    delete state.correct[key];
+    delete state.solved[key];
     const answer = state.answers[key]?.trim();
     if (answer) checkFinal(state, key, task, answer);
   }
   state.completed.test = true;
+}
+
+export function restartTest(state, entries) {
+  for (const { key } of entries) {
+    for (const field of ['answers', 'correct', 'attempts', 'solved']) delete state[field][key];
+  }
+  delete state.completed.test;
 }
 
 export function taskFeedback(task, raw) {

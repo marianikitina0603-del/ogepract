@@ -6,7 +6,7 @@ globalThis.window = { addEventListener() {} };
 const { numberAnswer } = await import('../shared/math-keyboard.js');
 const { lessonLayout } = await import('../shared/lesson-config.js');
 const { lessonStorage } = await import('../shared/storage.js');
-const { assistance, checkFinal, gradeTest, taskFeedback } = await import('../shared/assessment.js');
+const { assistance, checkFinal, gradeTest, restartTest, taskFeedback } = await import('../shared/assessment.js');
 const { magnifiedGap, createAnimation } = await import('../shared/interactive-math.js');
 const { printFormats, writingCapacity } = await import('../shared/notebook-print.js');
 const { pngArchive } = await import('../shared/export.js');
@@ -101,6 +101,14 @@ test('Помощь учитывается при первом решении, к
   assert.equal(state.completed.test, true);
   assert.equal(state.attempts['test-3-3'], 1);
   assert.equal(state.correct['test-4-3'], undefined);
+  state.notebook['test-3-3'] = [{ mode: 'pen', color: '#245c9b', width: 2, points: [[0, 0]] }];
+  restartTest(state, entries);
+  assert.equal(state.completed.test, undefined);
+  assert.equal(state.answers['test-3-3'], undefined);
+  assert.equal(state.correct['test-3-3'], undefined);
+  assert.equal(state.attempts['test-3-3'], undefined);
+  assert.equal(state.notebook['test-3-3'].length, 1);
+  assert.equal(state.correct[3], true);
 });
 
 test('Максимальный профиль умещается в SVG, обе размерные линии соблюдают масштаб', () => {

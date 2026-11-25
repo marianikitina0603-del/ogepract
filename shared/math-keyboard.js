@@ -90,7 +90,9 @@ export function numberAnswer(raw) {
 export function setupKeyboard(input, toggle, keys, preview, { full = false } = {}) {
   const digits = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', ',', '−', '/'];
   const symbols = ['+', '×', '÷', '(', ')', '[', ']', '^', '√', 'π', '|', 'x', 'y', '=', '≠', '<', '>', '≤', '≥'];
-  const layout = [...digits, ...(full ? symbols : []), '⌫'];
+  const layout = [...digits, '⌫', ...symbols];
+  let expanded = full;
+  const extraButtons = [];
   let start = 0;
   let end = 0;
   const selection = () => { start = input.selectionStart; end = input.selectionEnd; };
@@ -121,8 +123,19 @@ export function setupKeyboard(input, toggle, keys, preview, { full = false } = {
       input.setRangeText(insert, from, end, 'end');
       input.dispatchEvent(new Event('input', { bubbles: true }));
     };
+    if (symbols.includes(symbol)) extraButtons.push(button);
     keys.append(button);
   }
+  const switchLayout = document.createElement('button');
+  switchLayout.type = 'button';
+  function updateLayout() {
+    for (const button of extraButtons) button.hidden = !expanded;
+    switchLayout.textContent = expanded ? 'Только цифры и дроби' : 'Все знаки';
+    switchLayout.setAttribute('aria-expanded', String(expanded));
+  }
+  switchLayout.onclick = () => { expanded = !expanded; updateLayout(); };
+  keys.append(switchLayout);
+  updateLayout();
   function renderPreview() {
     const parts = input.value.match(/^\s*([−+-]?[\d.,a-z]+)\s*\/\s*([−+-]?[\d.,a-z]+)\s*$/i);
     preview.replaceChildren();
