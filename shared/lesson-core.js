@@ -1,10 +1,10 @@
 import { lessonStorage } from './storage.js';
 import { createInk, inkToolbar } from './annotation.js';
 import { setupPanels } from './panels.js';
-import { setupNotebook } from './notebook.js?v=5';
+import { setupNotebook } from './notebook.js?v=6';
 import { setupBoardTransfer } from './board-bridge.js?v=4';
 import { setupKeyboard, typeset, numberAnswer } from './math-keyboard.js';
-import { capture, download, preparePrint } from './export.js?v=5';
+import { capture, download, preparePrint } from './export.js?v=6';
 
 const modes = {
   study: { label: 'Обучение', set: 0, reveal: true },

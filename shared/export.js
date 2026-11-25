@@ -50,28 +50,60 @@ async function rasterize(node) {
   return canvas;
 }
 
-export async function capture(node) {
-  // Keep the rendered SVG viewport when the screenshot library serializes it
-  // as a standalone image. Relative CSS widths otherwise resolve against it.
-  const svgSizes = [...node.querySelectorAll('svg')].map(svg => {
-    const { width, height } = svg.getBoundingClientRect();
-    return [width, height];
+const svgPresentation = [
+  'background-color', 'border-radius', 'color', 'fill', 'fill-opacity', 'fill-rule', 'stroke',
+  'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
+  'stroke-dashoffset', 'paint-order', 'opacity', 'font-family', 'font-size', 'font-weight',
+  'font-style', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'visibility',
+];
+
+function diagramImage(source) {
+  const { width, height } = source.getBoundingClientRect();
+  if (!width || !height) return null;
+  const svg = source.cloneNode(true);
+  const originals = [source, ...source.querySelectorAll('*')];
+  const targets = [svg, ...svg.querySelectorAll('*')];
+  originals.forEach((element, index) => {
+    const style = getComputedStyle(element);
+    if (style.display === 'none') targets[index].style.display = 'none';
+    for (const property of svgPresentation) targets[index].style.setProperty(property, style.getPropertyValue(property));
   });
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.style.width = width + 'px';
+  svg.style.height = height + 'px';
+  svg.style.margin = '0';
+  const bytes = new XMLSerializer().serializeToString(svg);
+  const layout = getComputedStyle(source);
+  return {
+    src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(bytes),
+    width: width + 'px', height: height + 'px', display: layout.display,
+    margin: layout.margin, verticalAlign: layout.verticalAlign,
+  };
+}
+
+export async function capture(node) {
   let canvas;
   if (window.html2canvas) {
     try {
+      const originals = [...node.querySelectorAll('svg')].filter(svg => !svg.parentElement.closest('svg'));
+      const diagrams = originals.map(diagramImage);
       const scale = Math.min(2, 8192 / Math.max(node.offsetWidth, node.offsetHeight));
       canvas = await window.html2canvas(node, {
         scale, backgroundColor: '#fffefa', logging: false,
-        onclone(_document, copy) {
-          [...copy.querySelectorAll('svg')].forEach((svg, index) => {
-            const [width, height] = svgSizes[index] || [];
-            if (!width || !height) return;
-            svg.setAttribute('width', width);
-            svg.setAttribute('height', height);
-            svg.style.width = width + 'px';
-            svg.style.height = height + 'px';
-          });
+        async onclone(document, copy) {
+          const replacements = [...copy.querySelectorAll('svg')].filter(svg => !svg.parentElement.closest('svg'));
+          await Promise.all(replacements.map(async (svg, index) => {
+            const diagram = diagrams[index];
+            if (!diagram) return;
+            const { src, ...layout } = diagram;
+            const image = document.createElement('img');
+            Object.assign(image.style, layout);
+            image.alt = svg.getAttribute('aria-label') || '';
+            image.src = src;
+            svg.replaceWith(image);
+            await image.decode();
+          }));
         },
       });
     } catch { canvas = await rasterize(node); }

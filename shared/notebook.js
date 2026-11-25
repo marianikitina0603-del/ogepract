@@ -1,5 +1,5 @@
 import { createInk, drawStrokes, inkToolbar } from './annotation.js';
-import { capture, download, pngArchive, preparePrint } from './export.js?v=5';
+import { capture, download, pngArchive, preparePrint } from './export.js?v=6';
 import { typeset } from './math-keyboard.js';
 
 const defaultPaper = { kind: 'grid', cell: 20, zoom: 100 };
