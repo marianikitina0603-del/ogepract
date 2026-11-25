@@ -1,4 +1,4 @@
-import { startLesson } from '../../../shared/lesson-core.js?v=4';
+import { startLesson } from '../../../shared/lesson-core.js?v=5';
 import {
   fmt, mark, dimensions, dimensionDiagram, tableModel, profileModel, diameterModel, compareModel, rollingModel,
 } from './wheels.js?v=2';

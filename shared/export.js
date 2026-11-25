@@ -51,11 +51,29 @@ async function rasterize(node) {
 }
 
 export async function capture(node) {
+  // Keep the rendered SVG viewport when the screenshot library serializes it
+  // as a standalone image. Relative CSS widths otherwise resolve against it.
+  const svgSizes = [...node.querySelectorAll('svg')].map(svg => {
+    const { width, height } = svg.getBoundingClientRect();
+    return [width, height];
+  });
   let canvas;
   if (window.html2canvas) {
     try {
       const scale = Math.min(2, 8192 / Math.max(node.offsetWidth, node.offsetHeight));
-      canvas = await window.html2canvas(node, { scale, backgroundColor: '#fffefa', logging: false });
+      canvas = await window.html2canvas(node, {
+        scale, backgroundColor: '#fffefa', logging: false,
+        onclone(_document, copy) {
+          [...copy.querySelectorAll('svg')].forEach((svg, index) => {
+            const [width, height] = svgSizes[index] || [];
+            if (!width || !height) return;
+            svg.setAttribute('width', width);
+            svg.setAttribute('height', height);
+            svg.style.width = width + 'px';
+            svg.style.height = height + 'px';
+          });
+        },
+      });
     } catch { canvas = await rasterize(node); }
   } else {
     canvas = await rasterize(node);

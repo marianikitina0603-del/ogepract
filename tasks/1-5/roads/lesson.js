@@ -1,4 +1,4 @@
-import { startLesson } from '../../../shared/lesson-core.js?v=4';
+import { startLesson } from '../../../shared/lesson-core.js?v=5';
 import { legend, roadMap, roadNetwork, namesModel, segmentModel, rideModel, shoppingModel } from './map.js?v=2';
 
 const maslovka = {
