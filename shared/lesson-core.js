@@ -1,7 +1,8 @@
 import { lessonStorage } from './storage.js';
 import { createInk, inkToolbar } from './annotation.js';
 import { setupPanels } from './panels.js';
-import { setupNotebook } from './notebook.js';
+import { setupNotebook } from './notebook.js?v=4';
+import { setupBoardTransfer } from './board-bridge.js?v=4';
 import { setupKeyboard, typeset, numberAnswer } from './math-keyboard.js';
 import { capture, download, preparePrint } from './export.js';
 
@@ -37,10 +38,10 @@ export function startLesson(config) {
       <span id="position"></span><progress id="progress" aria-label="Положение в уроке"></progress>
       <button id="next" aria-label="Следующий слайд">→</button>
       <button id="snap">PNG слайда</button><button id="print-slide">Печать / PDF</button>
-      <button data-open="progress-menu">Прогресс</button>
+      <button data-open="board-menu">На доску</button><button data-open="progress-menu">Прогресс</button>
     </footer>
     <p id="lesson-status" role="status" aria-live="polite"></p>
-    ${panel('theory', 'Теория')}${panel('menu', 'Все слайды', false)}${panel('progress-menu', 'Прогресс', false)}`;
+    ${panel('theory', 'Теория')}${panel('menu', 'Все слайды', false)}${panel('progress-menu', 'Прогресс', false)}${panel('board-menu', 'На математическую доску', false)}`;
 
   const $ = id => root.querySelector('#' + id);
   const storage = lessonStorage(config.key);
@@ -261,6 +262,8 @@ export function startLesson(config) {
     $('progress').value = index + 1;
     $('prev').disabled = index === 0;
     $('next').disabled = index === last;
+    const taskButton = $('board-task');
+    if (taskButton) taskButton.disabled = !task;
     const content = $('content');
     if (index === 0) {
       content.innerHTML = `<div class="lesson-intro"><p class="task-source">${config.section || 'ОГЭ №1–5 · Практико-ориентированные задачи'}</p>
@@ -372,6 +375,25 @@ export function startLesson(config) {
     notebook.clearHistory();
     render();
   };
+  const boardMenu = $('board-menu');
+  boardMenu.querySelector('.inside').innerHTML = `<div class="lesson-row">
+    <button id="board-task">Задание</button>
+    <button id="board-slide">Слайд с заметками</button>
+    <button id="board-notebook">Текущую страницу тетради</button>
+    </div><p class="task-source">Снимок появится в разделе «Запись решения».</p>`;
+  const sendToBoard = setupBoardTransfer({ status });
+  function bindBoardTransfer(id, kind, image) {
+    const button = $(id);
+    button.onclick = async () => {
+      finishWriting();
+      panels.close(boardMenu);
+      await sendToBoard(kind, image);
+    };
+  }
+  bindBoardTransfer('board-task', 'task', () => notebook.capturePage(pageFor(index), false));
+  bindBoardTransfer('board-slide', 'slide', () => capture($('slide')));
+  bindBoardTransfer('board-notebook', 'notebook', () => notebook.capturePage());
+
   $('snap').onclick = async () => {
     try { download(await capture($('slide')), `${config.slug}-slide-${index + 1}.png`); }
     catch { status('Не удалось сделать снимок слайда.'); }

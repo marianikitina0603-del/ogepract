@@ -88,9 +88,10 @@ th { background: var(--wash); }
 .lesson-panel.max { inset: 0 !important; width: 100vw !important; height: 100dvh !important; resize: none; border-radius: 0; }
 .panelbar { display: flex; align-items: center; gap: .35rem; padding: .42rem .65rem; background: var(--wash); cursor: move; touch-action: none; }
 .panelbar strong { flex: 1; }
-#menu, #progress-menu { width: min(420px, calc(100vw - 1.3rem)); height: auto; max-height: calc(100dvh - 88px); }
+#menu, #progress-menu, #board-menu { width: min(420px, calc(100vw - 1.3rem)); height: auto; max-height: calc(100dvh - 88px); }
 #menu .inside { display: grid; gap: .35rem; }
 #menu .inside button { text-align: left; }
+#board-menu .lesson-row + p { margin: .65rem 0 0; }
 #progress-menu .lesson-row + .lesson-row { margin-top: .5rem; }
 .book-options, .book-export { margin: .55rem 0; }
 .book-options label, .book-export label { font-size: .88rem; }

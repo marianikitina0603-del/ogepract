@@ -65,14 +65,15 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
   };
   get('split-book').onclick = () => split(!panel.classList.contains('docked'));
 
-  function exportPage(page) {
+  function exportPage(page, withNotes = true) {
     const article = document.createElement('article');
     article.className = 'lesson-paper notebook-export-page';
-    stylePaper(article, layout(page.key));
+    stylePaper(article, withNotes ? layout(page.key) : { kind: 'plain', cell: 20 });
     const statement = document.createElement('div');
     statement.innerHTML = page.html;
     typeset(statement);
     article.append(statement);
+    if (!withNotes) return article;
     const bitmap = document.createElement('canvas');
     bitmap.width = 760;
     bitmap.height = height(page.key);
@@ -84,21 +85,27 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
     return article;
   }
 
+  async function capturePage(page = current(), withNotes = true) {
+    const stage = document.createElement('div');
+    stage.className = 'capture-stage';
+    const node = exportPage(page, withNotes);
+    stage.append(node);
+    document.body.append(stage);
+    try {
+      await node.querySelector('img')?.decode();
+      return await capture(node);
+    } finally { stage.remove(); }
+  }
+
   const selection = () => get('book-scope').value === 'page' ? [current()] : pages();
   get('book-png').onclick = async () => {
     const button = get('book-png');
     const selected = selection();
-    const stage = document.createElement('div');
-    stage.className = 'capture-stage';
-    document.body.append(stage);
     button.disabled = true;
     try {
       const files = [];
       for (const page of selected) {
-        const node = exportPage(page);
-        stage.replaceChildren(node);
-        await node.querySelector('img').decode();
-        files.push({ name: `${prefix}-${page.key}.png`, blob: await capture(node) });
+        files.push({ name: `${prefix}-${page.key}.png`, blob: await capturePage(page) });
       }
       if (files.length === 1) download(files[0].blob, files[0].name);
       else download(await pngArchive(files), prefix + '-notebook-png.zip');
@@ -106,7 +113,6 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
     } catch {
       status('Не удалось сохранить PNG.');
     } finally {
-      stage.remove();
       button.disabled = false;
     }
   };
@@ -138,6 +144,7 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
   };
   return {
     stop: drawing.stop,
+    capturePage,
     clearHistory: drawing.clearHistory,
     refresh() {
       question.innerHTML = current().html;
