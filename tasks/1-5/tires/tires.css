@@ -1,0 +1,19 @@
+.tire-model, .dimension-diagram { background: #f8fbf6; border-radius: 10px; }
+.tire-model text, .dimension-diagram text { fill: #20352e; font-weight: 650; }
+.tire-model .dimension-label, .dimension-diagram .dimension-label { font-size: 18px; font-weight: 800; }
+.tire-model .dim-plate, .dimension-diagram .dim-plate { fill: #fffefa; stroke: #8e611d; stroke-width: 1.1; }
+.tire-model .readout, .dimension-diagram .readout { paint-order: stroke fill; stroke: #fffefa; stroke-width: 3; stroke-linejoin: round; }
+.tire-model .lane-caption { font-size: 16px; }
+.tire-model .wheel-caption { font-size: 16px; }
+.tire-model .ticks, .dimension-diagram .ticks { fill: none; stroke: #855b24; stroke-width: 1.5; }
+.tire-model .faded { opacity: .23; }
+.tire-controls { margin: .6rem 0; }
+.tire-controls label { flex: 1 1 140px; font-weight: 560; }
+.tire-detail { background: #fffefa; border: 1px solid #cbd9cd; border-radius: 10px; padding: .55rem; margin-top: .7rem; }
+.tire-detail svg { max-height: 130px; }
+.tire-table .table-active { background: #e0ece0; }
+.tire-table .table-picked { outline: 2px solid #315d4b; outline-offset: -3px; background: #cfdfca; }
+.tire-table button { border: 0; background: transparent; padding: .16em .19em; border-radius: 4px; }
+.tire-table th, .tire-table td { min-width: 2.45rem; }
+.dimension-diagram { max-width: 580px; }
+.lesson-paper .dimension-diagram { max-width: 360px; }
