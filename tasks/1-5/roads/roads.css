@@ -1,0 +1,25 @@
+.road-map { border: 1px solid #c0ccb5; border-radius: 12px; background: #f5f7ed; max-width: 450px; }
+.road-map text { fill: #22372d; font: 700 15px system-ui, sans-serif; }
+.road-map .village-number { font-size: 20px; }
+.road-map .village-name { paint-order: stroke fill; stroke: #fffefa; stroke-width: 5; stroke-linejoin: round; }
+.road-map .road-highway { stroke: #425651; stroke-width: 5; stroke-linecap: round; }
+.road-map .road-path { stroke: #465338; stroke-width: 3; stroke-dasharray: 5 4; }
+.road-map .road-mark { stroke: #fffefa; stroke-width: 2; }
+.map-legend { display: flex; flex-wrap: wrap; gap: .35rem .85rem; margin: .35rem 0 .75rem; font-size: .86rem; }
+.map-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.map-legend i { display: inline-block; width: 1.4rem; border-top: 3px solid #425651; }
+.map-legend i.road-path { border-top: 3px dashed #465338; }
+.map-legend i.pond { height: .55rem; border: 1px solid #51808a; border-radius: 45%; background: #b2dee6; }
+.road-picks { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.road-picks label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .35rem; }
+.route-controls { margin: .5rem 0; }
+.route-controls label { display: grid; gap: .25rem; }
+.route-readouts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .55rem; }
+.route-readouts output { flex: 1 1 160px; padding: .4rem .6rem; margin: 0; border-left: 4px solid #246e8e; background: #fff; }
+.route-readouts output + output { border-color: #9b5b14; }
+.shopping-table tr.picked :is(th, td) { background: #dfeede; }
+.shopping-table tr.picked th { box-shadow: inset 4px 0 #557856; }
+.lesson-paper .road-map { max-width: 275px; }
+.lesson-paper details { border: 0; }
+.road-context summary { color: var(--accent); cursor: pointer; font-weight: 650; }
+@media (max-width: 500px) { .road-picks { grid-template-columns: 1fr; } }

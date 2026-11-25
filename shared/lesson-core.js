@@ -21,7 +21,7 @@ const panel = (id, title, tools = true) => `<section class="lesson-panel" id="${
 export function startLesson(config) {
   const root = document.querySelector('#lesson');
   root.innerHTML = `<header class="lesson-header">
-    <a href="../../../index.html#topic=1-5">← Каталог</a><strong>${config.shortTitle}</strong>
+    <a href="${config.catalogUrl || '../../../index.html#topic=1-5'}">← Каталог</a><strong>${config.shortTitle}</strong>
     <div class="lesson-row"><label>Режим <select id="lesson-mode">${Object.entries(modes).map(([id, mode]) =>
       `<option value="${id}">${mode.label}</option>`).join('')}</select></label>
     <button id="draw" aria-pressed="false">✎ На слайде</button>
@@ -89,7 +89,7 @@ export function startLesson(config) {
     const task = config.sets[variant].tasks[slide - 2];
     const key = keyFor(slide, variant);
     return { key, html: task
-      ? `<h2>${task.title}</h2><p class="task-source">${task.source}</p>${task.statement}${task.notebook ?? ''}`
+      ? `<h2>${task.title}</h2><p class="task-source">${task.source}</p>${task.notebookStatement ?? task.statement}${task.notebook ?? ''}`
       : `<h2>${config.shortTitle} · ${titleList[slide]}</h2>` };
   }
   function notebookPages() {
@@ -103,7 +103,7 @@ export function startLesson(config) {
           if (id !== mode && !saved) continue;
           if (id === mode && variant !== variantFor(slide) && !saved) continue;
           const task = config.sets[variant].tasks[slide - 2];
-          pages.push({ key, html: `<h2>${task.title}</h2><p class="task-source">${task.source} · ${modes[id].label}</p>${task.statement}${task.notebook ?? ''}` });
+          pages.push({ key, html: `<h2>${task.title}</h2><p class="task-source">${task.source} · ${modes[id].label}</p>${task.notebookStatement ?? task.statement}${task.notebook ?? ''}` });
         }
       }
     }
@@ -263,7 +263,7 @@ export function startLesson(config) {
     $('next').disabled = index === last;
     const content = $('content');
     if (index === 0) {
-      content.innerHTML = `<div class="lesson-intro"><p class="task-source">ОГЭ №1–5 · Практико-ориентированные задачи</p>
+      content.innerHTML = `<div class="lesson-intro"><p class="task-source">${config.section || 'ОГЭ №1–5 · Практико-ориентированные задачи'}</p>
         <h1>${config.title}</h1>${config.intro}<button class="primary" data-go="${reveal ? 1 : 2}">Начать урок →</button>
         <p class="task-source">${config.source}</p></div>`;
     } else if (index === 1) {
