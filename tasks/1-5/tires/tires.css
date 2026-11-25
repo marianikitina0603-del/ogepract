@@ -17,3 +17,11 @@
 .tire-table th, .tire-table td { min-width: 2.45rem; }
 .dimension-diagram { max-width: 580px; }
 .lesson-paper .dimension-diagram { max-width: 360px; }
+
+.tire-counters { display: flex; flex-wrap: wrap; gap: .45rem; }
+.tire-counters p { flex: 1 1 9rem; margin: 0; padding: .4rem .5rem; border-left: 4px solid #1a7196; background: #fff; font-variant-numeric: tabular-nums; }
+.tire-counters p + p { border-color: #9c6619; }
+@media (max-width: 500px) {
+  .tire-model .dimension-label, .dimension-diagram .dimension-label { font-size: 22px; }
+  .tire-model .wheel-caption, .tire-model .lane-caption { font-size: 19px; }
+}

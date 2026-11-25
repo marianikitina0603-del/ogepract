@@ -78,16 +78,24 @@ th { background: var(--wash); }
   position: fixed; top: 80px; right: .65rem; z-index: 20; display: flex; flex-direction: column;
   width: min(680px, calc(100vw - 1.3rem)); height: min(620px, calc(100dvh - 92px));
   min-width: min(290px, 100%); min-height: 3.1rem; max-width: 100vw; max-height: 100dvh;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; resize: both;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; resize: none;
   overflow: hidden; box-shadow: 0 14px 42px #193c2a33;
 }
 .lesson-panel.current { z-index: 23; }
 .lesson-panel .inside { overflow: auto; padding: .8rem; overscroll-behavior: contain; }
-.lesson-panel.min { height: auto !important; resize: horizontal; }
+.lesson-panel.min { height: auto !important; resize: none; }
 .lesson-panel.min .inside { display: none; }
-.lesson-panel.max { inset: 0 !important; width: 100vw !important; height: 100dvh !important; resize: none; border-radius: 0; }
+.lesson-panel.max { inset: 0 !important; width: 100vw !important; height: 100dvh !important; max-height: 100dvh; resize: none; border-radius: 0; }
 .panelbar { display: flex; align-items: center; gap: .35rem; padding: .42rem .65rem; background: var(--wash); cursor: move; touch-action: none; }
 .panelbar strong { flex: 1; }
+button.panel-resize { position: absolute; right: 0; bottom: 0; padding: .08rem .26rem; cursor: nwse-resize; touch-action: none; }
+.lesson-panel:has(.panel-resize) .inside { padding-bottom: 1.65rem; }
+.lesson-panel:is(.min, .max, .docked) .panel-resize { display: none; }
+.task-checkpoints { margin: .85rem 0; border: 1px solid var(--line); border-radius: 8px; padding: .5rem .65rem; }
+.task-checkpoints summary { cursor: pointer; font-weight: 650; }
+.checkpoint-row { margin: .5rem 0; }
+.checkpoint-row input { width: 7rem; }
+.theory-interactive, .task-context { margin-bottom: 1rem; }
 #menu, #progress-menu, #board-menu { width: min(420px, calc(100vw - 1.3rem)); height: auto; max-height: calc(100dvh - 88px); }
 #menu .inside { display: grid; gap: .35rem; }
 #menu .inside button { text-align: left; }
@@ -127,6 +135,9 @@ th { background: var(--wash); }
 .capture-stage { position: fixed; top: 0; left: -10000px; width: 790px; }
 .notebook-export-page { width: 790px; }
 #lesson-print { display: none; }
+.lesson-print-paper { padding: 3mm; display: flow-root; }
+.lesson-print-paper > div { display: flow-root; }
+.print-continuation { margin: 0 0 .35rem; font-size: .86rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (max-width: 850px) {
@@ -137,6 +148,9 @@ th { background: var(--wash); }
   .lesson-header, .lesson-footer { position: relative; }
   .lesson-header .lesson-row { width: 100%; margin: 0; }
   .lesson-slide { min-height: 55dvh; }
+  .lesson-panel { top: .65rem; right: .4rem; width: calc(100vw - .8rem); max-height: calc(100dvh - 1.3rem); }
+  .lesson-panel:not(.max) .panel-resize { display: none; }
+  .panelbar { cursor: default; }
   .lesson-split .lesson-workspace { grid-template-columns: 1fr; }
   .lesson-panel.docked { position: relative !important; top: auto !important; }
   td, th { padding: .35em .25em; }
@@ -146,9 +160,9 @@ th { background: var(--wash); }
   body:has(#lesson-print) > :not(#lesson-print) { display: none !important; }
   body:not(:has(#lesson-print)) :is(.lesson-header, .lesson-footer, .lesson-panel, .lesson-inkbar, #lesson-status) { display: none !important; }
   #lesson-print { display: block; }
-  .notebook-export-page { width: 100%; break-before: page; }
-  .notebook-export-page:first-child { break-before: auto; }
+  .lesson-print-paper { break-before: page; }
+  .lesson-print-paper:first-child { break-before: auto; }
   .notebook-export-page img { break-inside: avoid; }
   .lesson-paper { print-color-adjust: exact; }
-  .lesson-print-screenshot { display: block; max-width: 100%; max-height: 170mm; object-fit: contain; margin: auto; }
+  .lesson-print-screenshot { display: block; max-width: 100%; max-height: var(--print-height); object-fit: contain; margin: auto; }
 }

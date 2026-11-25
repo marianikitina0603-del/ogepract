@@ -1,3 +1,5 @@
+import { createAnimation, magnifiedGap } from '../../../shared/interactive-math.js?v=8';
+
 export const fmt = (value, digits = 3) => Number(value.toFixed(digits)).toLocaleString('ru-RU', { maximumFractionDigits: digits });
 export const mark = ([b, p, n]) => `${b}/${p} R${n}`;
 export function dimensions([b, p, n]) {
@@ -49,7 +51,7 @@ function horizontal(x1, x2, y, from, text) {
 
 export function dimensionDiagram(tire, show = ['H', 'B', 'd', 'D']) {
   const { b, h, disc, radius } = dimensions(tire);
-  const scale = .285, x = 135, sectionX = 435, y = 171;
+  const scale = .27, x = 141, sectionX = 435, y = 171;
   const r = radius * scale;
   const rim = disc * scale / 2;
   const side = h * scale;
@@ -127,7 +129,7 @@ export function tableModel(columns, rows) {
 }
 
 export function profileModel(tire) {
-  return (root, { reveal, onReveal }) => {
+  return (root, { reveal = true, onReveal = () => {} } = {}) => {
     const [b, p, n] = tire;
     root.innerHTML = `<h3>Как меняется колесо</h3><p>Меняй ширину и профиль при фиксированном диске ${n}″. Масштаб двух видов совпадает.</p>
       <div class="lesson-row tire-controls"><label>Ширина B, мм <strong data-b></strong><input aria-label="Ширина B" type="range" min="125" max="295" step="5" value="${b}"></label>
@@ -205,7 +207,7 @@ export function compareModel(before, after, radiusTask) {
     const scale = .28, y = 153;
     const difference = Math.abs(b.diameter - a.diameter);
     const radiusGap = difference / 2;
-    const magnification = Math.min(40, Math.floor(85 / (radiusGap * scale)));
+    const { factor: magnification, gap } = magnifiedGap(radiusGap * scale, 85, 40);
     root.innerHTML = `<h3>Сравни ${radiusTask ? 'радиусы' : 'диаметры'}</h3><p>Совмести центры колёс. Оба вида построены в одном масштабе.</p>
       <div class="lesson-row"><button data-toggle aria-pressed="false">Наложить контуры</button>
         ${reveal ? '<button data-measure>Показать вычисление</button>' : ''}</div>
@@ -223,7 +225,6 @@ export function compareModel(before, after, radiusTask) {
         + caption(135, before, blue) + caption(405, after, gold), 'Сравнение размеров колёс');
       const zoom = root.querySelector('[data-zoom]');
       zoom.hidden = !over;
-      const gap = radiusGap * scale * magnification;
       const aY = a.radius < b.radius ? 28 + gap : 28;
       const bY = b.radius < a.radius ? 28 + gap : 28;
       zoom.innerHTML = `<div class="tire-detail"><strong>Верхние точки контуров · увеличение ×${magnification}</strong>
@@ -252,18 +253,23 @@ export function rollingModel(before, after) {
     const a = dimensions(before);
     const b = dimensions(after);
     const scale = .15, origin = 72;
-    const factor = Math.min(20, Math.floor(220 / (Math.abs(b.roll - a.roll) * scale)));
+    const { factor, gap } = magnifiedGap(Math.abs(b.roll - a.roll) * scale, 220, 20);
     root.innerHTML = `<h3>Путь за один оборот</h3><p>Каждое колесо делает полный оборот без проскальзывания. Счётчики измеряют путь от одной линии старта.</p>
       <div class="lesson-row"><button data-roll>Запустить оборот</button><button data-reset>Сбросить</button>
       ${reveal ? '<button data-measure>Показать вычисление</button>' : ''}</div>
-      <div data-visual></div><div data-finish hidden></div><output></output>`;
+      <div data-visual></div>
+      ${reveal ? '<div class="tire-counters"><p data-distance-first></p><p data-distance-second></p></div>' : ''}
+      <div data-finish hidden></div><output aria-live="polite"></output>`;
     const visual = root.querySelector('[data-visual]');
     const finish = root.querySelector('[data-finish]');
-    let animation = 0;
     function draw(progress) {
+      if (reveal) {
+        root.querySelector('[data-distance-first]').textContent = `${mark(before)} · ${fmt(a.roll * progress, 1)} мм`;
+        root.querySelector('[data-distance-second]').textContent = `${mark(after)} · ${fmt(b.roll * progress, 1)} мм`;
+      }
       const lane = (tire, d, ground, color) => {
         const x = origin + d.roll * scale * progress;
-        return `<text class="lane-caption" x="12" y="${ground - 127}"><tspan fill="${color}">●</tspan> ${mark(tire)} · ${fmt(d.roll * progress, 1)} мм</text>
+        return `<text class="lane-caption" x="12" y="${ground - 127}"><tspan fill="${color}">●</tspan> ${mark(tire)}</text>
           <path d="M${origin} ${ground} H520" stroke="#a0b7a6"/>
           <path d="M${origin} ${ground} H${x}" stroke="${color}" stroke-width="3"/>
           <path d="M${origin} ${ground-12} V${ground+7} M${x} ${ground} V${ground+10}" stroke="${color}" stroke-width="2"/>
@@ -272,7 +278,6 @@ export function rollingModel(before, after) {
       visual.innerHTML = svg(304, lane(before, a, 150, blue) + lane(after, b, 293, gold), 'Качение двух колёс и счётчики расстояния');
       finish.hidden = progress < 1;
       if (progress < 1) return;
-      const gap = Math.abs(a.roll - b.roll) * scale * factor;
       const x1 = 155 + (a.roll > b.roll ? gap : 0);
       const x2 = 155 + (b.roll > a.roll ? gap : 0);
       finish.innerHTML = `<div class="tire-detail"><strong>Участок финиша · увеличение ×${factor}</strong></div>`
@@ -281,18 +286,9 @@ export function rollingModel(before, after) {
           <path d="M${x1} 20 V97 M${x2} 20 V97" stroke="#52645c" stroke-dasharray="4 3"/>
           ${horizontal(Math.min(x1, x2), Math.max(x1, x2), 83, 72, 'Δ')}`, 'Сравнение линий финиша');
     }
-    root.querySelector('[data-roll]').onclick = () => {
-      const token = ++animation;
-      const start = performance.now();
-      function tick(now) {
-        if (token !== animation || !root.isConnected) return;
-        const progress = Math.min(1, (now - start) / 2900);
-        draw(progress);
-        if (progress < 1) requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    };
-    root.querySelector('[data-reset]').onclick = () => { animation++; draw(0); root.querySelector('output').textContent = ''; };
+    const animation = createAnimation(root, draw, 2900);
+    root.querySelector('[data-roll]').onclick = animation.start;
+    root.querySelector('[data-reset]').onclick = () => { animation.reset(); root.querySelector('output').textContent = ''; };
     if (reveal) root.querySelector('[data-measure]').onclick = () => {
       onReveal();
       root.querySelector('output').textContent = `Пути за оборот: ${fmt(a.roll)} мм и ${fmt(b.roll)} мм. Разность: ${fmt(Math.abs(a.roll-b.roll))} мм.`;

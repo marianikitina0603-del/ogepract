@@ -30,22 +30,35 @@ export function createInk(canvas, toolbar, { strokes, key, save, onChange = () =
   let owner = null;
   let active = null;
   let mode = 'pen';
-  const redo = new Map();
+  let frame = 0;
+  const history = new Map();
   const input = name => toolbar.querySelector(`[data-ink-${name}]`);
-  const redraw = () => drawStrokes(canvas, strokes());
+  const entry = () => {
+    const id = key();
+    if (!history.has(id)) history.set(id, { undo: [], redo: [] });
+    return history.get(id);
+  };
+  function redraw() {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    drawStrokes(canvas, strokes());
+  }
+  function queueDraw() {
+    if (!frame) frame = requestAnimationFrame(redraw);
+  }
   function fit() {
     if (!canvas.clientWidth || !canvas.clientHeight) return;
-    // Limit the bitmap size of long notebook pages on high-density displays.
     const ratio = Math.min(devicePixelRatio, 4096 / Math.max(canvas.clientWidth, canvas.clientHeight));
-    const width = Math.round(canvas.clientWidth * ratio);
-    const height = Math.round(canvas.clientHeight * ratio);
+    const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
+    const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
     redraw();
   }
   function syncButtons() {
-    input('undo').disabled = !strokes().length;
-    input('redo').disabled = !redo.get(key())?.length;
+    const edits = entry();
+    input('undo').disabled = !edits.undo.length && !strokes().length;
+    input('redo').disabled = !edits.redo.length;
     toolbar.querySelectorAll('[data-ink-mode]').forEach(button =>
       button.setAttribute('aria-pressed', button.dataset.inkMode === mode));
     canvas.style.touchAction = mode === 'scroll' ? 'pan-x pan-y' : 'none';
@@ -57,65 +70,105 @@ export function createInk(canvas, toolbar, { strokes, key, save, onChange = () =
     fit();
     onChange();
   }
-  function point(event) {
-    const bounds = canvas.getBoundingClientRect();
+  function remember(edit) {
+    const edits = entry();
+    edits.redo.length = 0;
+    edits.undo.push(edit);
+    if (edits.undo.length > 60) edits.undo.shift();
+  }
+  function point(event, bounds) {
     return [(event.clientX - bounds.left) / bounds.width, (event.clientY - bounds.top) / bounds.height];
+  }
+  function sample(event) {
+    if (!active || event.pointerId !== owner) return;
+    const bounds = canvas.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const events = event.getCoalescedEvents?.() || [];
+    for (const sampleEvent of [...events, event]) {
+      const next = point(sampleEvent, bounds);
+      const previous = active.points.at(-1);
+      if (active.points.length < 100000 && (previous[0] !== next[0] || previous[1] !== next[1])) active.points.push(next);
+    }
   }
   canvas.addEventListener('pointerdown', event => {
     if (mode === 'scroll' || owner !== null || event.button !== 0) return;
+    const bounds = canvas.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
     event.preventDefault();
     owner = event.pointerId;
     canvas.setPointerCapture(owner);
     const width = +(input(mode === 'erase' ? 'eraser' : 'width').value);
-    active = { mode, color: input('color').value, width, points: [point(event)] };
+    active = { mode, color: input('color').value, width, points: [point(event, bounds)] };
     strokes().push(active);
-    redo.delete(key());
-    redraw();
+    queueDraw();
   });
   canvas.addEventListener('pointermove', event => {
     if (event.pointerId !== owner || !active) return;
-    for (const sample of event.getCoalescedEvents?.() || []) active.points.push(point(sample));
-    active.points.push(point(event));
-    redraw();
+    sample(event);
+    queueDraw();
   });
   function stop(event) {
     if (event && event.pointerId !== owner) return;
     if (!active) return;
+    if (event?.type === 'pointerup') sample(event);
+    remember({ drawn: active });
     active = null;
     const pointer = owner;
     owner = null;
     if (canvas.hasPointerCapture(pointer)) canvas.releasePointerCapture(pointer);
     change();
   }
-  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    canvas.addEventListener(name, stop);
-  }
+  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(name, stop);
+
   toolbar.querySelectorAll('[data-ink-mode]').forEach(button => {
     button.addEventListener('click', () => {
+      stop();
       mode = button.dataset.inkMode;
       syncButtons();
     });
   });
   input('undo').onclick = () => {
-    const previous = strokes().pop();
-    if (!previous) return;
-    if (!redo.has(key())) redo.set(key(), []);
-    redo.get(key()).push(previous);
+    stop();
+    const edits = entry();
+    const list = strokes();
+    const edit = edits.undo.pop() || (list.length ? { drawn: list.at(-1) } : null);
+    if (!edit) return;
+    if (edit.cleared) list.push(...edit.cleared);
+    else list.pop();
+    edits.redo.push(edit);
     change();
   };
   input('redo').onclick = () => {
-    const next = redo.get(key())?.pop();
-    if (!next) return;
-    strokes().push(next);
+    stop();
+    const edits = entry();
+    const edit = edits.redo.pop();
+    if (!edit) return;
+    if (edit.cleared) strokes().length = 0;
+    else strokes().push(edit.drawn);
+    edits.undo.push(edit);
     change();
   };
   input('clear').onclick = () => {
+    stop();
     if (!strokes().length || !confirm('Очистить записи на этой странице?')) return;
-    redo.set(key(), strokes().splice(0).reverse());
+    remember({ cleared: strokes().splice(0) });
     change();
   };
   new ResizeObserver(fit).observe(canvas);
-  return { fit, stop, refresh() { syncButtons(); fit(); }, clearHistory: () => redo.clear() };
+  return {
+    fit, stop, refresh() { syncButtons(); fit(); },
+    clearHistory: () => history.clear(),
+    scaleY(factor) {
+      stop();
+      const edits = entry();
+      const affected = new Set(strokes());
+      for (const edit of [...edits.undo, ...edits.redo]) {
+        if (edit.drawn) affected.add(edit.drawn);
+        else for (const stroke of edit.cleared) affected.add(stroke);
+      }
+      for (const stroke of affected) for (const point of stroke.points) point[1] *= factor;
+    },
+  };
 }
 
 export function inkToolbar({ scroll = false } = {}) {

@@ -114,20 +114,25 @@ export async function capture(node) {
     blob => blob ? resolve(blob) : reject(new Error('Не удалось сохранить изображение.')), 'image/png'));
 }
 
-export function preparePrint(nodes, { size = 'A4', slide = false } = {}) {
+export async function preparePrint(nodes, { size = 'A4', slide = false } = {}) {
   document.querySelector('#lesson-print')?.remove();
   document.querySelector('#lesson-print-style')?.remove();
   const root = document.createElement('div');
   root.id = 'lesson-print';
   root.classList.toggle('print-slide', slide);
+  root.style.setProperty('--print-height', size === 'A5' ? '189mm' : '276mm');
   root.append(...nodes);
   document.body.append(root);
   const style = document.createElement('style');
   style.id = 'lesson-print-style';
   style.textContent = `@page { size: ${size === 'A5' ? 'A5' : 'A4'}; margin: 10mm; }`;
   document.head.append(style);
-  window.addEventListener('afterprint', () => { root.remove(); style.remove(); }, { once: true });
-  window.print();
+  const images = [...root.querySelectorAll('img')];
+  await Promise.allSettled(images.map(image => image.decode()));
+  const cleanup = () => { root.remove(); style.remove(); };
+  window.addEventListener('afterprint', cleanup, { once: true });
+  try { window.print(); }
+  catch (error) { cleanup(); throw error; }
 }
 
 const crcTable = Uint32Array.from({ length: 256 }, (_, index) => {

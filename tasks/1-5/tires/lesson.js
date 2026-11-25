@@ -1,7 +1,6 @@
-import { startLesson } from '../../../shared/lesson-core.js?v=6';
 import {
   fmt, mark, dimensions, dimensionDiagram, tableModel, profileModel, diameterModel, compareModel, rollingModel,
-} from './wheels.js?v=2';
+} from './wheels.js?v=8';
 
 const variants = [
   {
@@ -66,6 +65,8 @@ const diameterFormula = formula('D=d+2H');
 const distanceFormula = formula('L=\\pi D');
 const changeFormula = formula('\\frac{D_2-D_1}{D_1}\\cdot 100\\%');
 const genericDiagram = dimensionDiagram([195, 65, 15]);
+const checkpoint = (label, answer, hint) => ({ label, answer, hint });
+const mistake = (value, text) => ({ value, text });
 
 function buildSet(data, variant) {
   const factory = dimensions(data.factory);
@@ -95,6 +96,8 @@ function buildSet(data, variant) {
         </tbody></table></div>
         <p>Шины какой ${extreme} ширины можно устанавливать на автомобиль, если диаметр диска равен ${data.disc} дюймам? Ответ дайте в миллиметрах.</p>`,
       answer: best,
+      mistakes: [mistake(data.disc, 'Число в заголовке столбца — диаметр диска. В ответе нужна ширина из строки.'),
+        mistake(data.search === 'min' ? Math.max(...widths) : Math.min(...widths), 'Ты выбрал противоположную крайность. Уточни, просят наибольшую или наименьшую ширину.')],
       hints: ['Какой столбец соответствует указанному диаметру диска?', 'Прочерки обозначают неподходящие сочетания.', `Среди оставшихся строк выбери ${data.search === 'min' ? 'наименьшую' : 'наибольшую'} ширину.`],
       steps: [`Для диска ${data.disc}″ подходят ширины ${widths.join(', ')} мм.`, `Искомая ширина равна ${best} мм.`],
       context: '<p>Заголовок столбца задаёт диаметр диска в дюймах. Заголовок строки задаёт ширину шины в миллиметрах.</p>',
@@ -106,6 +109,9 @@ function buildSet(data, variant) {
       statement: `<p>Сколько миллиметров составляет высота боковины шины, имеющей маркировку <strong>${mark(data.profile)}</strong>?</p>`,
       notebook: genericDiagram,
       answer: profile.h,
+      checkpoints: [checkpoint('Профиль в виде десятичной дроби', profile.p / 100, 'Процент — одна сотая. Раздели число процентов на 100.')],
+      mistakes: [mistake(profile.p, 'Второе число маркировки — процент от ширины. Найди высоту в миллиметрах.'),
+        mistake(profile.b, 'Первое число маркировки — ширина. Найди от неё указанный процент.')],
       hints: ['Что означают первое и второе числа в маркировке?', 'Найди указанное в маркировке число процентов от ширины.', 'Используй формулу ' + heightFormula + ', где p задано в процентах.'],
       steps: [`Ширина равна ${profile.b} мм. Боковина составляет ${profile.p}% ширины.`, heightStep(profile)],
       context: '<p>Высоту боковины вычисляем по формуле ' + heightFormula + '.</p>',
@@ -117,6 +123,10 @@ function buildSet(data, variant) {
       statement: '<p>Найдите диаметр колеса автомобиля, выходящего с завода. Ответ дайте в миллиметрах.</p>' + factoryData(data.factory),
       notebook: genericDiagram,
       answer: factory.diameter,
+      checkpoints: [checkpoint('Диаметр диска, мм', factory.disc, 'Один дюйм равен 25,4 мм.'),
+        checkpoint('Высота одной боковины, мм', factory.h, 'Вычисли указанный процент от ширины.')],
+      mistakes: [mistake(factory.disc + factory.h, 'Ты учёл одну боковину. Полный диаметр проходит через две.'),
+        mistake(factory.radius, 'Получился радиус. Удвой его, чтобы найти полный диаметр.')],
       hints: ['Сколько боковин пересекает диаметр?', 'Сложи диаметр диска и высоты двух боковин. Приведи размеры к миллиметрам.', 'Используй ' + diameterFormula + ' и 1″ = 25,4 мм.'],
       steps: [heightStep(factory), discStep(factory), diameterStep(factory)],
       context: '<p>Полный диаметр состоит из диаметра диска и двух боковин.</p>',
@@ -130,6 +140,9 @@ function buildSet(data, variant) {
         : `<p>На сколько миллиметров ${smaller ? 'уменьшится' : 'увеличится'} диаметр колеса, если заменить колёса, установленные на заводе, колёсами с шинами <strong>${mark(data.compare[1])}</strong>?</p>` + factoryData(data.factory),
       notebook: genericDiagram,
       answer: difference,
+      checkpoints: [checkpoint(`Первое колесо · ${radiusTask ? 'радиус' : 'диаметр'}, мм`, wheel1[key], 'Сверь маркировку первого колеса и требуемый размер.'),
+        checkpoint(`Второе колесо · ${radiusTask ? 'радиус' : 'диаметр'}, мм`, wheel2[key], 'Сверь маркировку второго колеса.')],
+      mistakes: [mistake(radiusTask ? difference * 2 : difference / 2, radiusTask ? 'Это разность диаметров. Радиус вдвое меньше диаметра.' : 'Это разность радиусов. Диаметр вдвое больше радиуса.')],
       hints: compareHints,
       steps: radiusTask
         ? [heightStep(wheel1, 'H_1'), heightStep(wheel2, 'H_2'), formula(`r_2-r_1=H_2-H_1=${decimal(wheel2.h)}-${decimal(wheel1.h)}=${decimal(difference)}`) + ' мм.']
@@ -145,6 +158,9 @@ function buildSet(data, variant) {
         установленные на заводе, колёсами с шинами <strong>${mark(data.roll)}</strong>? Результат округлите до десятых.</p>` + factoryData(data.factory),
       notebook: genericDiagram,
       answer: +percent.toFixed(1),
+      checkpoints: [checkpoint('Исходный диаметр, мм', factory.diameter, 'Используй заводскую маркировку.'),
+        checkpoint('Новый диаметр, мм', replacement.diameter, 'Пересчитай высоту боковины и диаметр диска по новой маркировке.')],
+      mistakes: [mistake(replacement.diameter - factory.diameter, 'Это изменение диаметра в миллиметрах. Нужна доля от исходного диаметра в процентах.')],
       hints: ['Какую длину проходит колесо за полный оборот?', 'Сравни длины окружностей. Дели прирост на исходный пробег.', 'По формуле ' + distanceFormula + ' множитель π сокращается. Можно сравнивать диаметры.'],
       steps: [diameterStep(factory, 'D_1'), diameterStep(replacement, 'D_2'),
         formula(`\\frac{${decimal(replacement.diameter)}-${decimal(factory.diameter)}}{${decimal(factory.diameter)}}${times}100\\%\\approx${decimal(+percent.toFixed(1))}\\%`) + '.'],
@@ -169,13 +185,13 @@ const cards = [
   ['Изменение пробега', '\\frac{D_2-D_1}{D_1}\\cdot100\\%'],
 ];
 
-startLesson({
+export const tireLesson = {
   key: 'oge-tires-v1',
   slug: 'shiny',
   legacySource: 'ФИПИ, сборник MathStart, стр. 9–11',
   shortTitle: 'ОГЭ · Шины',
   title: 'Шины<br>Математика в движении',
-  intro: '<p>Прочитай маркировку шины, рассчитай размеры колеса и проверь на модели, как меняется пробег за один оборот.</p><p>В уроке пять заданий демоверсии и три комплекта аналогов из сборника.</p>',
+  intro: '<p>Научишься читать маркировку, находить размеры колеса и сравнивать путь за оборот. Начни с теории и проверь формулы на модели.</p><p>В уроке пять заданий демоверсии и три комплекта аналогов из сборника.</p>',
   source: 'А. Д. Остромогильский, «Открытый банк задач ФИПИ. ОГЭ по математике», обновление 28.08.2026. Демоверсия — стр. 9–11, аналоги — стр. 176–182.',
   theoryTitle: 'Маркировка и формулы',
   theory: `<h3>Как читать 195/65 R15</h3>
@@ -183,7 +199,13 @@ startLesson({
       <strong>R</strong> обозначает радиальную конструкцию. <strong>15</strong> — диаметр диска в дюймах.</p>
     <div class="theory-layout">${genericDiagram}<div class="formula-cards">${cards.map(([label, tex]) =>
       `<div class="formula-card"><small>${label}</small><div>${formula(tex)}</div></div>`).join('')}</div></div>
-    <h3>Проверь себя</h3><p>Один дюйм равен 25,4 мм. В формулах полного диаметра, радиуса и длины окружности используй одни и те же единицы.</p>
-    <p>В полном диаметре две высоты боковины. При процентном сравнении пробега дели разность на исходный пробег.</p>`,
+    <h3>Порядок вычислений</h3><ol><li>Прочитай ширину и профиль. Вычисли высоту одной боковины.</li>
+    <li>Переведи диаметр диска в миллиметры. Один дюйм равен 25,4 мм.</li>
+    <li>Прибавь высоты двух боковин. По полному диаметру можно вычислить радиус и путь за оборот.</li></ol>
+    <h3>Пример</h3><p>Для маркировки 195/65 R15 получаем ${heightStep(dimensions([195, 65, 15]))}</p>
+    <p>${discStep(dimensions([195, 65, 15]))} ${diameterStep(dimensions([195, 65, 15]))}</p>
+    <h3>Частые ошибки</h3><ul><li>Профиль в маркировке указан в процентах.</li><li>Полный диаметр включает две боковины.</li>
+    <li>При сравнении пробега дели прирост на исходный пробег и округляй в конце.</li></ul>`,
+  mountTheory: profileModel([195, 65, 15]),
   sets: variants.map(buildSet),
-});
+};

@@ -106,6 +106,6 @@ window.OGE_TOPICS = [
     "part": 2
   }
 ];
-window.OGE_MATERIALS = [{topic:"1-5",type:"lesson",title:"Шины · Математика в движении",description:"5 заданий демоверсии, 15 аналогов и интерактивные модели колеса",path:"tasks/1-5/tires/index.html?v=6"},
-  {topic:"1-5",type:"lesson",title:"Дороги · От карты до маршрута",description:"5 задач и 15 аналогов. План местности, анимация поездки и сравнение цен",path:"tasks/1-5/roads/index.html?v=6"},
+window.OGE_MATERIALS = [{topic:"1-5",type:"lesson",title:"Шины · Математика в движении",description:"5 заданий демоверсии, 15 аналогов и интерактивные модели колеса",path:"tasks/1-5/tires/index.html?v=8"},
+  {topic:"1-5",type:"lesson",title:"Дороги · От карты до маршрута",description:"5 задач и 15 аналогов. План местности, анимация поездки и сравнение цен",path:"tasks/1-5/roads/index.html?v=8"},
 ];

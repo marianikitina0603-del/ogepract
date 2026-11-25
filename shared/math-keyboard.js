@@ -79,7 +79,7 @@ export function typeset(element) {
 window.addEventListener('lesson:math-ready', () => typeset(document.body));
 
 export function numberAnswer(raw) {
-  const value = raw.trim().replaceAll('−', '-').replaceAll(',', '.');
+  const value = raw.trim().replaceAll('−', '-').replaceAll(',', '.').replace(/(?<=\d)[\u00a0\u202f](?=\d{3}(?:\D|$))/g, '');
   const decimal = '[+-]?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)';
   const parts = value.match(new RegExp(`^(${decimal})(?:\\s*/\\s*(${decimal}))?$`));
   if (!parts) return NaN;
@@ -87,12 +87,20 @@ export function numberAnswer(raw) {
   return Number.isFinite(result) ? result : NaN;
 }
 
-export function setupKeyboard(input, toggle, keys, preview) {
-  const layout = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', ',', '−', '+', '×', '÷', '/', '(', ')', '^', '√', 'π', '|', 'x', 'y', '=', '≠', '<', '>', '≤', '≥', '⌫'];
+export function setupKeyboard(input, toggle, keys, preview, { full = false } = {}) {
+  const digits = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', ',', '−', '/'];
+  const symbols = ['+', '×', '÷', '(', ')', '[', ']', '^', '√', 'π', '|', 'x', 'y', '=', '≠', '<', '>', '≤', '≥'];
+  const layout = [...digits, ...(full ? symbols : []), '⌫'];
   let start = 0;
   let end = 0;
   const selection = () => { start = input.selectionStart; end = input.selectionEnd; };
   for (const event of ['focus', 'click', 'keyup', 'input', 'select']) input.addEventListener(event, selection);
+  input.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || keys.hidden) return;
+    keys.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    event.stopPropagation();
+  });
   toggle.onclick = () => {
     keys.hidden = !keys.hidden;
     toggle.setAttribute('aria-expanded', String(!keys.hidden));

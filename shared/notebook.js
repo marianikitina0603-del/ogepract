@@ -1,6 +1,7 @@
-import { createInk, drawStrokes, inkToolbar } from './annotation.js';
-import { capture, download, pngArchive, preparePrint } from './export.js?v=6';
-import { typeset } from './math-keyboard.js';
+import { createInk, drawStrokes, inkToolbar } from './annotation.js?v=8';
+import { capture, download, pngArchive } from './export.js?v=8';
+import { typeset } from './math-keyboard.js?v=8';
+import { printNotebook } from './notebook-print.js?v=8';
 
 const defaultPaper = { kind: 'grid', cell: 20, zoom: 100 };
 const defaultHeight = 420;
@@ -56,14 +57,20 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
     const { key } = current();
     const before = height(key);
     const after = Math.min(4800, before + 240);
-    for (const stroke of strokes(key)) {
-      for (const point of stroke.points) point[1] *= before / after;
-    }
+    drawing.scaleY(before / after);
     state().heights[key] = after;
     save();
     updatePaper();
   };
   get('split-book').onclick = () => split(!panel.classList.contains('docked'));
+
+  function notebookBitmap(page) {
+    const bitmap = document.createElement('canvas');
+    bitmap.width = 760;
+    bitmap.height = height(page.key);
+    drawStrokes(bitmap, state().notebook[page.key] || []);
+    return bitmap;
+  }
 
   function exportPage(page, withNotes = true) {
     const article = document.createElement('article');
@@ -74,10 +81,7 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
     typeset(statement);
     article.append(statement);
     if (!withNotes) return article;
-    const bitmap = document.createElement('canvas');
-    bitmap.width = 760;
-    bitmap.height = height(page.key);
-    drawStrokes(bitmap, state().notebook[page.key] || []);
+    const bitmap = notebookBitmap(page);
     const image = document.createElement('img');
     image.alt = 'Решение от руки';
     image.src = bitmap.toDataURL();
@@ -116,31 +120,19 @@ export function setupNotebook(panel, { current, pages, state, save, split, statu
       button.disabled = false;
     }
   };
-  get('book-print').onclick = () => {
-    const size = get('book-size').value;
-    preparePrint(selection().map(page => {
-      const article = exportPage(page);
-      const image = article.querySelector('img');
-      const heightLimit = size === 'A5' ? 740 : 1070;
-      if (image.naturalHeight < heightLimit && height(page.key) <= heightLimit) return article;
-      // Print a long solution in slices so no part is clipped at a page boundary.
-      const bitmap = document.createElement('canvas');
-      bitmap.width = 760;
-      bitmap.height = height(page.key);
-      drawStrokes(bitmap, state().notebook[page.key] || []);
-      image.remove();
-      for (let top = 0; top < bitmap.height; top += heightLimit) {
-        const slice = document.createElement('canvas');
-        slice.width = bitmap.width;
-        slice.height = Math.min(heightLimit, bitmap.height - top);
-        slice.getContext('2d').drawImage(bitmap, 0, -top);
-        const piece = document.createElement('img');
-        piece.alt = 'Решение от руки';
-        piece.src = slice.toDataURL();
-        article.append(piece);
-      }
-      return article;
-    }), { size });
+  get('book-print').onclick = async () => {
+    const button = get('book-print');
+    button.disabled = true;
+    drawing.stop();
+    try {
+      await printNotebook(selection().map(page => {
+        const article = exportPage(page, false);
+        stylePaper(article, layout(page.key));
+        return { article, bitmap: () => notebookBitmap(page), title: article.querySelector('h2')?.textContent || 'Тетрадь' };
+      }), get('book-size').value);
+    } catch {
+      status('Не удалось подготовить тетрадь для печати.');
+    } finally { button.disabled = false; }
   };
   return {
     stop: drawing.stop,
